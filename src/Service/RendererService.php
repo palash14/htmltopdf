@@ -210,9 +210,14 @@ class RendererService
     {
         return [
             $this->config->wkhtmltopdfPath,
-            '--no-background',
-            '--disable-javascript',
+            '--background',
+            '--enable-javascript',
+            '--javascript-delay',
+            '1000',
+            '--print-media-type',
             '--load-error-handling',
+            'ignore',
+            '--load-media-error-handling',
             'ignore',
             $url,
             $outputPath,

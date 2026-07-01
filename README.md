@@ -387,7 +387,7 @@ vendor/bin/phpunit --coverage-html coverage/
 
 **PDF renders are empty or corrupt**
 - Test wkhtmltopdf directly: `wkhtmltopdf https://example.com /tmp/test.pdf && ls -lh /tmp/test.pdf`
-- Some pages require JavaScript; wkhtmltopdf runs with `--disable-javascript` for security.
+- The renderer enables JavaScript with a short delay and preserves CSS backgrounds for closer browser parity.
 
 **Always getting 422 SSRF error**
 - The URL's hostname must resolve to a public IP. Private IPs (10.x.x.x, 192.168.x.x, 127.x.x.x, etc.) are blocked by design.
@@ -411,7 +411,7 @@ vendor/bin/phpunit --coverage-html coverage/
 - API keys are validated using `hash_equals()` (constant-time) to prevent timing attacks.
 - API key values are **never** written to logs.
 - URLs submitted to the API are DNS-resolved and checked against private/loopback CIDRs before being passed to wkhtmltopdf (SSRF protection).
-- wkhtmltopdf is invoked with `--disable-javascript` and `--no-background`.
+- wkhtmltopdf is invoked with JavaScript enabled, print media CSS, CSS backgrounds, and ignored media-load errors.
 - Generated filenames use 160 bits of cryptographic randomness (`random_bytes(20)`), preventing enumeration.
 - Stack traces are never exposed in production error responses.
 

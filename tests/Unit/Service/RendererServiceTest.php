@@ -238,6 +238,12 @@ class RendererServiceTest extends TestCase
         /** @var object{inspectCommand: callable(string,string): array} $service */
         $command = $service->inspectCommand($url, $outputPath);
 
+        self::assertContains('--background', $command);
+        self::assertContains('--enable-javascript', $command);
+        self::assertContains('--javascript-delay', $command);
+        self::assertContains('--print-media-type', $command);
+        self::assertNotContains('--no-background', $command);
+        self::assertNotContains('--disable-javascript', $command);
         self::assertSame($url, $command[count($command) - 2]);
         self::assertSame($outputPath, $command[count($command) - 1]);
     }
