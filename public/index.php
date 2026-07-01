@@ -93,11 +93,13 @@ $app = AppFactory::createFromContainer($container);
 //    Order: RequestLog → Auth → RateLimit → (Slim routing/error)
 // ---------------------------------------------------------------------------
 
-// Slim's built-in routing and error middleware are added first (innermost)
+// Slim runs the last added middleware first. Error middleware is added after
+// app middleware so auth/rate-limit exceptions are returned as JSON responses.
 $app->addRoutingMiddleware();
 
-$callableResolver = $app->getCallableResolver();
-$responseFactory  = $app->getResponseFactory();
+$app->add($container->get(RateLimitMiddleware::class));
+$app->add($container->get(AuthMiddleware::class));
+$app->add($container->get(RequestLogMiddleware::class));
 
 $errorMiddleware = $app->addErrorMiddleware(
     displayErrorDetails: false,  // never expose traces in production
@@ -108,11 +110,6 @@ $errorMiddleware = $app->addErrorMiddleware(
 // Register our custom JSON error handler for all Throwables
 $jsonErrorHandler = $container->get(JsonErrorHandler::class);
 $errorMiddleware->setDefaultErrorHandler($jsonErrorHandler);
-
-// Outer middleware (added last so they run first)
-$app->add($container->get(RateLimitMiddleware::class));
-$app->add($container->get(AuthMiddleware::class));
-$app->add($container->get(RequestLogMiddleware::class));
 
 // ---------------------------------------------------------------------------
 // 4. Register routes
