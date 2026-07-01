@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Integration\ConvertEndpointTest" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" tests="9" assertions="50" errors="0" failures="0" skipped="0" time="2.828698">
+    <testcase name="testFullConvertThenDownloadRoundTrip" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="269" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="16" time="0.309378"/>
+    <testcase name="testExpiresAtIsApproximatelyNowPlusTtl" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="369" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="5" time="0.138183"/>
+    <testcase name="testPdfAndSidecarFilesAreWrittenToStorageDir" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="413" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="6" time="0.137519"/>
+    <testcase name="testDownloadNonExistentFileReturns404" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="447" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="2" time="0.008093"/>
+    <testcase name="testDownloadInvalidFilenameReturns400" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="472" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="1" time="0.005574"/>
+    <testcase name="testDownloadExpiredFileReturns410" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="492" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="1" time="2.128039"/>
+    <testcase name="testAtMostMaxConcurrentRenderersRunAtOnce" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="529" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="5" time="0.034799"/>
+    <testcase name="testExcessRequestsQueueOrReturn503" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="584" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="9" time="0.054432"/>
+    <testcase name="testQueueFullReturns503ImmediatelyWithoutWaiting" file="D:\xampp\htdocs\h\htmltopdf\tests\Integration\ConvertEndpointTest.php" line="636" class="Tests\Integration\ConvertEndpointTest" classname="Tests.Integration.ConvertEndpointTest" assertions="5" time="0.012681"/>
+  </testsuite>
+</testsuites>

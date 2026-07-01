@@ -514,4 +514,177 @@ class ConvertEndpointTest extends TestCase
         $this->assertSame(410, $downloadResponse->getStatusCode(),
             'Downloading an expired file must return HTTP 410 Gone');
     }
+
+    // -----------------------------------------------------------------------
+    // Task 16.2 — Concurrency guard and semaphore behaviour
+    // -----------------------------------------------------------------------
+
+    /**
+     * The concurrency guard must limit simultaneous renders to
+     * maxConcurrentRenderers (5). Once all slots are consumed, a 6th acquire()
+     * must throw ConcurrencyException (→ 503).
+     *
+     * Validates: Requirements 6.1, 6.4
+     */
+    public function testAtMostMaxConcurrentRenderersRunAtOnce(): void
+    {
+        $config = new Config(
+            port: 8080,
+            wkhtmltopdfPath: '',
+            apiKeys: ['test-key'],
+            storageDir: $this->storageDir,
+            baseUrl: 'https://example.com',
+            maxConcurrentRenderers: 5,
+        );
+
+        $guard = new IntegrationConcurrencyGuard($config);
+
+        // All 5 slots should be available initially.
+        $this->assertSame(5, $guard->getAvailableSlots(),
+            'All slots must be available before any acquires');
+
+        // Acquire all 5 slots without releasing them.
+        for ($i = 0; $i < 5; $i++) {
+            $guard->acquire(60);
+        }
+
+        $this->assertSame(0, $guard->getAvailableSlots(),
+            'No slots must remain after maxConcurrentRenderers acquires');
+
+        // A 6th acquire with a very short timeout must throw ConcurrencyException
+        // because all slots are taken (Requirement 6.4: timeout → 503).
+        $caught = null;
+        try {
+            $guard->acquire(0); // timeout immediately
+        } catch (ConcurrencyException $e) {
+            $caught = $e;
+        }
+
+        $this->assertNotNull($caught,
+            'A 6th acquire when all slots are full must throw ConcurrencyException');
+        $this->assertSame(503, $caught->getStatusCode(),
+            'ConcurrencyException must map to HTTP 503');
+
+        // Release all 5 slots.
+        for ($i = 0; $i < 5; $i++) {
+            $guard->release();
+        }
+
+        $this->assertSame(5, $guard->getAvailableSlots(),
+            'All slots must be available again after releasing all acquires');
+    }
+
+    /**
+     * When the slot pool is full, further acquire() calls with timeout=0 must
+     * throw ConcurrencyException immediately (queue timeout → 503).
+     * After releasing held slots, the guard recovers to its initial state.
+     *
+     * Validates: Requirements 6.2, 6.3
+     */
+    public function testExcessRequestsQueueOrReturn503(): void
+    {
+        $config = new Config(
+            port: 8080,
+            wkhtmltopdfPath: '',
+            apiKeys: ['test-key'],
+            storageDir: $this->storageDir,
+            baseUrl: 'https://example.com',
+            maxConcurrentRenderers: 2,
+        );
+
+        $guard = new IntegrationConcurrencyGuard($config);
+
+        // Fill both slots.
+        $guard->acquire(60);
+        $guard->acquire(60);
+
+        $this->assertSame(0, $guard->getAvailableSlots(),
+            'Both slots must be consumed after 2 acquires');
+
+        // Three more immediate-timeout acquires must all throw ConcurrencyException.
+        $exceptionCount = 0;
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                $guard->acquire(0); // no wait — pool is full
+            } catch (ConcurrencyException $e) {
+                $exceptionCount++;
+                $this->assertStringContainsString('queue timeout', $e->getMessage(),
+                    'Timed-out acquire must report "queue timeout"');
+                $this->assertSame(503, $e->getStatusCode(),
+                    'ConcurrencyException must map to HTTP 503');
+            }
+        }
+
+        $this->assertSame(3, $exceptionCount,
+            'All 3 excess acquires must throw ConcurrencyException');
+
+        // Release the 2 held slots and verify full recovery.
+        $guard->release();
+        $guard->release();
+
+        $this->assertSame(2, $guard->getAvailableSlots(),
+            'Both slots must be available again after releasing');
+    }
+
+    /**
+     * When the in-flight queue depth exceeds MAX_QUEUE_SIZE (20), acquire()
+     * must throw ConcurrencyException with message 'queue full' immediately,
+     * without touching the available slots.
+     *
+     * Validates: Requirement 6.3
+     */
+    public function testQueueFullReturns503ImmediatelyWithoutWaiting(): void
+    {
+        $config = new Config(
+            port: 8080,
+            wkhtmltopdfPath: '',
+            apiKeys: ['test-key'],
+            storageDir: $this->storageDir,
+            baseUrl: 'https://example.com',
+            maxConcurrentRenderers: 5,
+        );
+
+        // Use an anonymous subclass that exposes a depth-forcing method via
+        // Reflection so we can simulate 20 in-flight requests without actually
+        // holding acquire() calls open.
+        $guard = new class($config) extends IntegrationConcurrencyGuard {
+            public function forceDepth(int $d): void
+            {
+                $ref = new \ReflectionProperty(IntegrationConcurrencyGuard::class, 'depth');
+                $ref->setAccessible(true);
+                $ref->setValue($this, $d);
+            }
+        };
+
+        // Acquire one slot so there is one less slot available (depth = 1, slots = 4).
+        $guard->acquire(60);
+        $slotsAfterOneAcquire = $guard->getAvailableSlots();
+        $this->assertSame(4, $slotsAfterOneAcquire,
+            '4 slots must remain after 1 acquire');
+
+        // Force the depth counter to MAX_QUEUE_SIZE (20) to simulate 20
+        // requests already in flight.
+        $guard->forceDepth(20);
+
+        // The next acquire() must detect depth(21) > MAX_QUEUE_SIZE(20)
+        // and throw ConcurrencyException('queue full') immediately.
+        $caught = null;
+        try {
+            $guard->acquire(60); // timeout doesn't matter — must throw before polling
+        } catch (ConcurrencyException $e) {
+            $caught = $e;
+        }
+
+        $this->assertNotNull($caught,
+            'acquire() must throw ConcurrencyException when queue depth exceeds MAX_QUEUE_SIZE');
+        $this->assertStringContainsString('queue full', $caught->getMessage(),
+            'Exception message must indicate "queue full"');
+        $this->assertSame(503, $caught->getStatusCode(),
+            'ConcurrencyException must map to HTTP 503');
+
+        // Available slots must be unchanged — the guard returned early before
+        // decrementing the slot counter.
+        $this->assertSame(4, $guard->getAvailableSlots(),
+            'Available slots must not change when the queue-full path is taken');
+    }
 }

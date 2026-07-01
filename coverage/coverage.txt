@@ -1,0 +1,30 @@
+
+
+Code Coverage Report:
+  2026-07-01 20:07:55
+
+ Summary:
+  Classes: 15.38% (4/26)
+  Methods: 14.67% (11/75)
+  Lines:   27.90% (173/620)
+
+App\Controller\ConvertController
+  Methods:  50.00% ( 1/ 2)   Lines:  86.96% ( 20/ 23)
+App\Controller\FileController
+  Methods: 100.00% ( 3/ 3)   Lines: 100.00% ( 22/ 22)
+App\Exception\ConcurrencyException
+  Methods: 100.00% ( 2/ 2)   Lines: 100.00% (  2/  2)
+App\Model\Config
+  Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  1/  1)
+App\Model\StoredFile
+  Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  1/  1)
+App\Service\ConcurrencyGuard
+  Methods:   0.00% ( 0/ 5)   Lines:   5.88% (  2/ 34)
+App\Service\InputValidator
+  Methods:   0.00% ( 0/ 1)   Lines:  63.64% (  7/ 11)
+App\Service\RendererService
+  Methods:  16.67% ( 1/ 6)   Lines:  44.79% ( 43/ 96)
+App\Service\SsrfGuard
+  Methods:   0.00% ( 0/ 3)   Lines:  38.89% ( 21/ 54)
+App\Service\StorageService
+  Methods:  28.57% ( 2/ 7)   Lines:  52.43% ( 54/103)
