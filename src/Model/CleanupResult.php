@@ -7,7 +7,7 @@ namespace App\Model;
 /**
  * Immutable value object representing the outcome of a single cleanup run.
  */
-readonly class CleanupResult
+final class CleanupResult
 {
     /**
      * @param int $deletedCount   Number of PDF/sidecar pairs successfully deleted.
@@ -15,8 +15,8 @@ readonly class CleanupResult
      * @param int $errorCount     Number of files that could not be deleted due to I/O errors.
      */
     public function __construct(
-        public int $deletedCount,
-        public int $reclaimedBytes,
-        public int $errorCount,
+        public readonly int $deletedCount,
+        public readonly int $reclaimedBytes,
+        public readonly int $errorCount,
     ) {}
 }

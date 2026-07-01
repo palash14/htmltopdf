@@ -10,7 +10,7 @@ namespace App\Model;
  * Required fields must be supplied explicitly; optional fields carry defaults
  * or are nullable (disabled when null).
  */
-readonly class Config
+final class Config
 {
     /**
      * @param int         $port                     Listening port (1–65535)
@@ -26,16 +26,16 @@ readonly class Config
      * @param int|null    $rateLimitRpm             Requests-per-minute per API key; null = disabled (1–1000 when set)
      */
     public function __construct(
-        public int     $port,
-        public string  $wkhtmltopdfPath,
-        public array   $apiKeys,
-        public string  $storageDir,
-        public string  $baseUrl,
-        public int     $ttlSeconds              = 3600,
-        public int     $cleanupIntervalSeconds  = 60,
-        public int     $maxConcurrentRenderers  = 5,
-        public int     $renderTimeoutSeconds    = 30,
-        public ?int    $maxStorageMb            = null,
-        public ?int    $rateLimitRpm            = null,
+        public readonly int     $port,
+        public readonly string  $wkhtmltopdfPath,
+        public readonly array   $apiKeys,
+        public readonly string  $storageDir,
+        public readonly string  $baseUrl,
+        public readonly int     $ttlSeconds              = 3600,
+        public readonly int     $cleanupIntervalSeconds  = 60,
+        public readonly int     $maxConcurrentRenderers  = 5,
+        public readonly int     $renderTimeoutSeconds    = 30,
+        public readonly ?int    $maxStorageMb            = null,
+        public readonly ?int    $rateLimitRpm            = null,
     ) {}
 }

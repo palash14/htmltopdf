@@ -9,7 +9,7 @@ namespace App\Model;
  *
  * Created by StorageService::save() and returned by StorageService::find().
  */
-readonly class StoredFile
+final class StoredFile
 {
     /**
      * @param string             $filename    Filename on disk (e.g. "a3f9...b2.pdf")
@@ -19,10 +19,10 @@ readonly class StoredFile
      * @param \DateTimeImmutable $expiresAt   UTC timestamp when the file is eligible for deletion
      */
     public function __construct(
-        public string             $filename,
-        public string             $path,
-        public string             $downloadUrl,
-        public \DateTimeImmutable $createdAt,
-        public \DateTimeImmutable $expiresAt,
+        public readonly string             $filename,
+        public readonly string             $path,
+        public readonly string             $downloadUrl,
+        public readonly \DateTimeImmutable $createdAt,
+        public readonly \DateTimeImmutable $expiresAt,
     ) {}
 }

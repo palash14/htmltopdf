@@ -292,7 +292,8 @@ class ConfigLoaderPropertyTest extends TestCase
      */
     private function runConfigLoaderSubprocess(array $env, string $configFile = ''): array
     {
-        $configFileArg = $configFile !== '' ? var_export($configFile, true) : 'null';
+        $defaultEmptyConfig = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+        $configFileArg = var_export($configFile !== '' ? $configFile : $defaultEmptyConfig, true);
         // Use absolute path to the project root's autoload so the script works
         // regardless of where the temp file is saved.
         $projectRoot = dirname(__DIR__, 2);
