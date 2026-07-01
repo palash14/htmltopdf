@@ -265,6 +265,21 @@ class AuthMiddlewareTest extends TestCase
         self::assertInstanceOf(ResponseInterface::class, $response);
     }
 
+    public function testFileDownloadDoesNotRequireAuthorizationHeader(): void
+    {
+        $middleware = $this->makeMiddleware(['secret-key']);
+        $factory    = new ServerRequestFactory();
+        $request    = $factory->createServerRequest(
+            'GET',
+            'https://example.com/api/files/abcdef1234567890abcdef1234567890.pdf'
+        );
+        $handler = $this->makeHandler(expectCall: true);
+
+        $response = $middleware->process($request, $handler);
+
+        self::assertInstanceOf(ResponseInterface::class, $response);
+    }
+
     // -----------------------------------------------------------------------
     // 6. Multiple valid keys — each one passes
     // -----------------------------------------------------------------------

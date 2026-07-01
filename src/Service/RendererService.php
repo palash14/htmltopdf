@@ -11,10 +11,10 @@ use App\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
- * Spawns wkhtmltopdf as a subprocess to render a URL to a PDF file.
+ * Spawns the configured renderer as a subprocess to render a URL to a PDF file.
  *
  * Responsibilities:
- *  - Verify wkhtmltopdf is executable at construction time.
+ *  - Verify the configured renderer is executable at construction time.
  *  - Build and launch the command via proc_open.
  *  - Enforce the configured rendering timeout.
  *  - Validate the resulting output file.
@@ -26,11 +26,12 @@ class RendererService
         private readonly Config          $config,
         private readonly LoggerInterface $logger,
     ) {
+        $rendererPath = $this->rendererPath();
         // Only check if the path is non-empty (allows testable environments where
         // the binary does not exist to construct the service without a real binary).
-        if ($this->config->wkhtmltopdfPath !== '' && !$this->isExecutable($this->config->wkhtmltopdfPath)) {
+        if ($rendererPath !== '' && !$this->isExecutable($rendererPath)) {
             throw new RendererUnavailableException(
-                'wkhtmltopdf is not executable at: ' . $this->config->wkhtmltopdfPath
+                $this->config->rendererEngine . ' renderer is not executable at: ' . $rendererPath
             );
         }
     }
@@ -149,7 +150,8 @@ class RendererService
 
             throw new RendererException(
                 sprintf(
-                    'wkhtmltopdf exited with code %d: %s',
+                    '%s renderer exited with code %d: %s',
+                    $this->config->rendererEngine,
                     $exitCode,
                     $stderrCapped !== '' ? $stderrCapped : '(no stderr output)'
                 )
@@ -208,6 +210,10 @@ class RendererService
      */
     protected function buildCommand(string $url, string $outputPath): array
     {
+        if ($this->config->rendererEngine === 'chrome') {
+            return $this->buildChromeCommand($url, $outputPath);
+        }
+
         return [
             $this->config->wkhtmltopdfPath,
             '--background',
@@ -221,6 +227,29 @@ class RendererService
             'ignore',
             $url,
             $outputPath,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildChromeCommand(string $url, string $outputPath): array
+    {
+        return [
+            (string) $this->config->chromePath,
+            '--headless',
+            '--disable-gpu',
+            '--no-sandbox',
+            '--disable-dev-shm-usage',
+            '--window-size=1280,1696',
+            '--force-device-scale-factor=1',
+            '--hide-scrollbars',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=3000',
+            '--no-pdf-header-footer',
+            '--print-to-pdf-no-header',
+            '--print-to-pdf=' . $outputPath,
+            $url,
         ];
     }
 
@@ -247,6 +276,15 @@ class RendererService
             $output .= $chunk;
         }
         return $output;
+    }
+
+    private function rendererPath(): string
+    {
+        if ($this->config->rendererEngine === 'chrome') {
+            return (string) $this->config->chromePath;
+        }
+
+        return $this->config->wkhtmltopdfPath;
     }
 
     /**

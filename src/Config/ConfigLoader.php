@@ -152,6 +152,20 @@ class ConfigLoader
             'RATE_LIMIT_RPM / rateLimitRpm'
         );
 
+        $rendererEngine = strtolower((string) ($get('RENDERER_ENGINE', 'rendererEngine') ?? 'wkhtmltopdf'));
+        if (!in_array($rendererEngine, ['wkhtmltopdf', 'chrome'], true)) {
+            self::abort('RENDERER_ENGINE / rendererEngine must be one of: wkhtmltopdf, chrome');
+        }
+
+        $chromePathRaw = $get('CHROME_PATH', 'chromePath');
+        $chromePath = $chromePathRaw === null || $chromePathRaw === '' || $chromePathRaw === false
+            ? null
+            : (string) $chromePathRaw;
+
+        if ($rendererEngine === 'chrome') {
+            self::requirePresent($chromePath, 'CHROME_PATH / chromePath');
+        }
+
         return new Config(
             port:                    $port,
             wkhtmltopdfPath:         (string) $wkhtmltopdfPath,
@@ -164,6 +178,8 @@ class ConfigLoader
             renderTimeoutSeconds:    $renderTimeoutSeconds,
             maxStorageMb:            $maxStorageMb,
             rateLimitRpm:            $rateLimitRpm,
+            rendererEngine:          $rendererEngine,
+            chromePath:              $chromePath,
         );
     }
 

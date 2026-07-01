@@ -37,5 +37,7 @@ final class Config
         public readonly int     $renderTimeoutSeconds    = 30,
         public readonly ?int    $maxStorageMb            = null,
         public readonly ?int    $rateLimitRpm            = null,
+        public readonly string  $rendererEngine          = 'wkhtmltopdf',
+        public readonly ?string $chromePath              = null,
     ) {}
 }

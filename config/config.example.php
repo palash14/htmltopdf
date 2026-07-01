@@ -119,6 +119,24 @@ return [
     // 'renderTimeoutSeconds' => 30,
 
     /**
+     * rendererEngine  ("wkhtmltopdf"|"chrome", default "wkhtmltopdf")
+     *
+     * Use "chrome" for the closest match to modern browser CSS rendering.
+     *
+     * Env var: RENDERER_ENGINE
+     */
+    // 'rendererEngine' => 'wkhtmltopdf',
+
+    /**
+     * chromePath  (string|null, required when rendererEngine="chrome")
+     *
+     * Absolute path to Google Chrome or Chromium.
+     *
+     * Env var: CHROME_PATH
+     */
+    // 'chromePath' => '/usr/bin/google-chrome',
+
+    /**
      * maxStorageMb  (int > 0 | null, default null = disabled)
      *
      * If set, the API will refuse new conversion requests with HTTP 507 once

@@ -122,6 +122,8 @@ On cPanel you can also set environment variables via **cPanel → Software → P
 | `CLEANUP_INTERVAL_SECONDS` | `cleanupIntervalSeconds` | | 60 | 10–3600 | Cleanup job frequency |
 | `MAX_CONCURRENT_RENDERERS` | `maxConcurrentRenderers` | | 5 | 1–50 | Max simultaneous wkhtmltopdf processes |
 | `RENDER_TIMEOUT_SECONDS` | `renderTimeoutSeconds` | | 30 | 5–300 | Per-render timeout |
+| `RENDERER_ENGINE` | `rendererEngine` | | wkhtmltopdf | wkhtmltopdf/chrome | Renderer backend |
+| `CHROME_PATH` | `chromePath` | if using chrome | â€” | â€” | Absolute path to Chrome/Chromium |
 | `MAX_STORAGE_MB` | `maxStorageMb` | | disabled | > 0 | Max storage size in MB |
 | `RATE_LIMIT_RPM` | `rateLimitRpm` | | disabled | 1–1000 | Requests per minute per API key |
 
@@ -215,7 +217,7 @@ The script exits with code `0` on success or `1` if any I/O errors occurred (use
 
 ### Authentication
 
-All requests require a Bearer token:
+Conversion requests require a Bearer token:
 
 ```
 Authorization: Bearer your-api-key-here
@@ -247,8 +249,10 @@ Authorization: Bearer your-api-key-here
 **Request:**
 ```http
 GET /api/files/{filename}
-Authorization: Bearer your-api-key-here
 ```
+
+Generated PDF download URLs are public until they expire; no Authorization
+header is required for this endpoint.
 
 **Success response (200):**
 - `Content-Type: application/pdf`
@@ -411,7 +415,7 @@ vendor/bin/phpunit --coverage-html coverage/
 - API keys are validated using `hash_equals()` (constant-time) to prevent timing attacks.
 - API key values are **never** written to logs.
 - URLs submitted to the API are DNS-resolved and checked against private/loopback CIDRs before being passed to wkhtmltopdf (SSRF protection).
-- wkhtmltopdf is invoked with JavaScript enabled, print media CSS, CSS backgrounds, and ignored media-load errors.
+- For closer browser fidelity, set `RENDERER_ENGINE=chrome` and `CHROME_PATH` to a Chrome/Chromium binary.
 - Generated filenames use 160 bits of cryptographic randomness (`random_bytes(20)`), preventing enumeration.
 - Stack traces are never exposed in production error responses.
 

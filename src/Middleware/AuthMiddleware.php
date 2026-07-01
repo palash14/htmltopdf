@@ -32,6 +32,10 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        if ($this->isPublicFileDownload($request)) {
+            return $handler->handle($request);
+        }
+
         // Step 1: Require the Authorization header.
         $headerLine = $request->getHeaderLine('Authorization');
         if ($headerLine === '') {
@@ -66,5 +70,11 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         throw new AuthException(403, 'Invalid API key');
+    }
+
+    private function isPublicFileDownload(ServerRequestInterface $request): bool
+    {
+        return $request->getMethod() === 'GET'
+            && str_starts_with($request->getUri()->getPath(), '/api/files/');
     }
 }

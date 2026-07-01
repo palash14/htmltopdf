@@ -33,6 +33,10 @@ class RateLimitMiddleware implements MiddlewareInterface
         ServerRequestInterface  $request,
         RequestHandlerInterface $handler,
     ): ResponseInterface {
+        if ($this->isPublicFileDownload($request)) {
+            return $handler->handle($request);
+        }
+
         // Rate limiting disabled — pass through immediately.
         if ($this->config->rateLimitRpm === null) {
             return $handler->handle($request);
@@ -67,5 +71,11 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
 
         return '';
+    }
+
+    private function isPublicFileDownload(ServerRequestInterface $request): bool
+    {
+        return $request->getMethod() === 'GET'
+            && str_starts_with($request->getUri()->getPath(), '/api/files/');
     }
 }

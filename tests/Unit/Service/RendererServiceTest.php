@@ -54,7 +54,11 @@ class RendererServiceTest extends TestCase
         return $dir;
     }
 
-    private function makeConfig(int $timeoutSeconds = 30): Config
+    private function makeConfig(
+        int $timeoutSeconds = 30,
+        string $rendererEngine = 'wkhtmltopdf',
+        ?string $chromePath = null,
+    ): Config
     {
         return new Config(
             port: 8080,
@@ -63,6 +67,8 @@ class RendererServiceTest extends TestCase
             storageDir: sys_get_temp_dir(),
             baseUrl: 'https://example.com',
             renderTimeoutSeconds: $timeoutSeconds,
+            rendererEngine: $rendererEngine,
+            chromePath: $chromePath,
         );
     }
 
@@ -180,7 +186,7 @@ class RendererServiceTest extends TestCase
         $logger = $this->makeLogger();
 
         $this->expectException(RendererUnavailableException::class);
-        $this->expectExceptionMessage('wkhtmltopdf is not executable at: /nonexistent/wkhtmltopdf');
+        $this->expectExceptionMessage('wkhtmltopdf renderer is not executable at: /nonexistent/wkhtmltopdf');
 
         new class($config, $logger) extends RendererService {
             protected function isExecutable(string $path): bool
@@ -246,6 +252,28 @@ class RendererServiceTest extends TestCase
         self::assertNotContains('--disable-javascript', $command);
         self::assertSame($url, $command[count($command) - 2]);
         self::assertSame($outputPath, $command[count($command) - 1]);
+    }
+
+    public function testBuildCommandUsesChromeWhenConfigured(): void
+    {
+        $config = $this->makeConfig(rendererEngine: 'chrome', chromePath: '/usr/bin/google-chrome');
+        $logger = $this->makeLogger();
+        $service = $this->makeCommandInspector($config, $logger);
+
+        $url = 'https://example.com/page.html';
+        $outputPath = '/tmp/out.pdf';
+
+        /** @var object{inspectCommand: callable(string,string): array} $service */
+        $command = $service->inspectCommand($url, $outputPath);
+
+        self::assertSame('/usr/bin/google-chrome', $command[0]);
+        self::assertContains('--headless', $command);
+        self::assertContains('--window-size=1280,1696', $command);
+        self::assertContains('--force-device-scale-factor=1', $command);
+        self::assertContains('--no-pdf-header-footer', $command);
+        self::assertContains('--print-to-pdf-no-header', $command);
+        self::assertContains('--print-to-pdf=' . $outputPath, $command);
+        self::assertSame($url, $command[count($command) - 1]);
     }
 
     // -----------------------------------------------------------------------
