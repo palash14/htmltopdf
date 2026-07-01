@@ -5,6 +5,11 @@
 
 RewriteEngine On
 
+# Preserve Authorization for PHP/FastCGI environments that do not pass it
+# through automatically.
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # If the requested path maps to a real file or directory under public/,
 # serve it directly.
 RewriteCond %{REQUEST_FILENAME} !-f

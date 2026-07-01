@@ -3,6 +3,11 @@
 
 RewriteEngine On
 
+# Preserve Authorization for PHP/FastCGI environments that do not pass it
+# through automatically.
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Allow direct access to real files (e.g., static assets).
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

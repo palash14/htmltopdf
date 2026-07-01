@@ -243,6 +243,28 @@ class AuthMiddlewareTest extends TestCase
         self::assertInstanceOf(ResponseInterface::class, $response);
     }
 
+    /**
+     * Some Apache/FastCGI setups expose Authorization only as a server param.
+     * The middleware should accept that forwarded value.
+     *
+     * Requirements: 3.1, 3.6
+     */
+    public function testForwardedHttpAuthorizationServerParamCallsHandler(): void
+    {
+        $middleware = $this->makeMiddleware(['forwarded-key']);
+        $factory    = new ServerRequestFactory();
+        $request    = $factory->createServerRequest(
+            'POST',
+            'https://example.com/api/convert',
+            ['HTTP_AUTHORIZATION' => 'Bearer forwarded-key']
+        );
+        $handler    = $this->makeHandler(expectCall: true);
+
+        $response = $middleware->process($request, $handler);
+
+        self::assertInstanceOf(ResponseInterface::class, $response);
+    }
+
     // -----------------------------------------------------------------------
     // 6. Multiple valid keys — each one passes
     // -----------------------------------------------------------------------

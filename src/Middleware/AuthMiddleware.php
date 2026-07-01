@@ -34,6 +34,14 @@ class AuthMiddleware implements MiddlewareInterface
     {
         // Step 1: Require the Authorization header.
         $headerLine = $request->getHeaderLine('Authorization');
+        if ($headerLine === '') {
+            $serverParams = $request->getServerParams();
+            $headerLine = (string) (
+                $serverParams['HTTP_AUTHORIZATION']
+                ?? $serverParams['REDIRECT_HTTP_AUTHORIZATION']
+                ?? ''
+            );
+        }
 
         if ($headerLine === '') {
             throw new AuthException(401, 'Authorization header required');
