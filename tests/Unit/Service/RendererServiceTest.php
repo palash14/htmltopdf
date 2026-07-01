@@ -140,6 +140,24 @@ class RendererServiceTest extends TestCase
         };
     }
 
+    private function makeCommandInspector(Config $config, LoggerInterface $logger): RendererService
+    {
+        return new class($config, $logger) extends RendererService {
+            protected function isExecutable(string $path): bool
+            {
+                return true;
+            }
+
+            /**
+             * @return list<string>
+             */
+            public function inspectCommand(string $url, string $outputPath): array
+            {
+                return $this->buildCommand($url, $outputPath);
+            }
+        };
+    }
+
     // -----------------------------------------------------------------------
     // 1. Constructor — RendererUnavailableException when binary not executable
     // -----------------------------------------------------------------------
@@ -206,6 +224,22 @@ class RendererServiceTest extends TestCase
         };
 
         $this->assertInstanceOf(RendererService::class, $service);
+    }
+
+    public function testBuildCommandPassesUrlBeforeOutputPath(): void
+    {
+        $config = $this->makeConfig();
+        $logger = $this->makeLogger();
+        $service = $this->makeCommandInspector($config, $logger);
+
+        $url = 'https://example.com/page.html';
+        $outputPath = '/tmp/out.pdf';
+
+        /** @var object{inspectCommand: callable(string,string): array} $service */
+        $command = $service->inspectCommand($url, $outputPath);
+
+        self::assertSame($url, $command[count($command) - 2]);
+        self::assertSame($outputPath, $command[count($command) - 1]);
     }
 
     // -----------------------------------------------------------------------

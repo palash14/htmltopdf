@@ -207,8 +207,8 @@ class RendererService
             '--disable-javascript',
             '--load-error-handling',
             'ignore',
-            $outputPath,
             $url,
+            $outputPath,
         ];
     }
 
