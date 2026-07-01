@@ -28,10 +28,20 @@ class ConfigLoader
      *
      * @param string|null $configFile Path to the PHP config file.
      *                                Defaults to <project-root>/config/config.php.
+     * @param string|null $envFile    Path to a dotenv file. When omitted, the
+     *                                default config file also loads
+     *                                <project-root>/.env.
      */
-    public static function load(?string $configFile = null): Config
+    public static function load(?string $configFile = null, ?string $envFile = null): Config
     {
-        $configFile ??= dirname(__DIR__, 2) . '/config/config.php';
+        $projectRoot = dirname(__DIR__, 2);
+        $useDefaultConfig = $configFile === null;
+
+        if ($useDefaultConfig && $envFile === null) {
+            $envFile = $projectRoot . '/.env';
+        }
+
+        $configFile ??= $projectRoot . '/config/config.php';
 
         $file = [];
         if (is_file($configFile)) {
@@ -44,10 +54,16 @@ class ConfigLoader
         // -------------------------------------------------------------------
         // Helper: resolve a value — env var wins over config file, else null.
         // -------------------------------------------------------------------
-        $get = static function (string $envKey, string $fileKey) use ($file): mixed {
+        // Process env wins over dotenv; dotenv wins over PHP config.
+        $dotenv = $envFile !== null ? self::loadDotenv($envFile) : [];
+
+        $get = static function (string $envKey, string $fileKey) use ($file, $dotenv): mixed {
             $env = getenv($envKey);
             if ($env !== false && $env !== '') {
                 return $env;
+            }
+            if (array_key_exists($envKey, $dotenv) && $dotenv[$envKey] !== '') {
+                return $dotenv[$envKey];
             }
             return $file[$fileKey] ?? null;
         };
@@ -163,8 +179,17 @@ class ConfigLoader
      */
     private static function abort(string $message): never
     {
-        fwrite(\STDERR, '[CONFIG ERROR] ' . $message . PHP_EOL);
-        exit(1);
+        // STDERR and exit(1) only make sense in CLI context (e.g. cron).
+        // In web SAPI (Apache/PHP-FPM) STDERR is not defined, so we throw
+        // a RuntimeException which the Slim error handler will catch and
+        // return as a 500 JSON response with the config error message.
+        if (PHP_SAPI === 'cli') {
+            $stderr = defined('STDERR') ? STDERR : fopen('php://stderr', 'wb');
+            fwrite($stderr, '[CONFIG ERROR] ' . $message . PHP_EOL);
+            exit(1);
+        }
+
+        throw new \RuntimeException('[CONFIG ERROR] ' . $message);
     }
 
     /**
@@ -233,6 +258,74 @@ class ConfigLoader
                 static fn($k) => $k !== ''
             )
         );
+    }
+
+    /**
+     * Parse a simple dotenv file without mutating the process environment.
+     *
+     * Supports KEY=value, optional "export ", single/double quoted values,
+     * blank lines, and full-line comments. Inline comments are stripped only
+     * from unquoted values.
+     *
+     * @return array<string,string>
+     */
+    private static function loadDotenv(string $envFile): array
+    {
+        if (!is_file($envFile)) {
+            return [];
+        }
+
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES);
+        if ($lines === false) {
+            self::abort('Unable to read dotenv file: ' . $envFile);
+        }
+
+        $values = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            if (str_starts_with($line, 'export ')) {
+                $line = trim(substr($line, 7));
+            }
+
+            $separator = strpos($line, '=');
+            if ($separator === false) {
+                continue;
+            }
+
+            $key = trim(substr($line, 0, $separator));
+            if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $key)) {
+                continue;
+            }
+
+            $value = trim(substr($line, $separator + 1));
+            $values[$key] = self::parseDotenvValue($value);
+        }
+
+        return $values;
+    }
+
+    private static function parseDotenvValue(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $quote = $value[0];
+        if (($quote === '"' || $quote === "'") && str_ends_with($value, $quote)) {
+            $value = substr($value, 1, -1);
+            return $quote === '"' ? stripcslashes($value) : $value;
+        }
+
+        $commentStart = strpos($value, ' #');
+        if ($commentStart !== false) {
+            $value = substr($value, 0, $commentStart);
+        }
+
+        return rtrim($value);
     }
 
     /**

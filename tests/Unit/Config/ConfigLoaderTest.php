@@ -124,7 +124,7 @@ class ConfigLoaderTest extends TestCase
     private function loadSnippet(?string $configFile = null): string
     {
         if ($configFile === null) {
-            return '\App\Config\ConfigLoader::load(null);';
+            $configFile = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
         }
         $escaped = addslashes($configFile);
         return "\App\Config\ConfigLoader::load('{$escaped}');";
@@ -141,6 +141,22 @@ class ConfigLoaderTest extends TestCase
         $export = var_export($data, true);
         $tmpFile = tempnam(sys_get_temp_dir(), 'cfg_') . '.php';
         file_put_contents($tmpFile, "<?php return {$export};\n");
+        return $tmpFile;
+    }
+
+    /**
+     * Write a temporary dotenv file and return its path.
+     *
+     * @param array<string,string> $data
+     */
+    private function writeTempEnv(array $data): string
+    {
+        $tmpFile = tempnam(sys_get_temp_dir(), 'env_');
+        $lines = [];
+        foreach ($data as $key => $value) {
+            $lines[] = $key . '=' . $value;
+        }
+        file_put_contents($tmpFile, implode("\n", $lines) . "\n");
         return $tmpFile;
     }
 
@@ -427,6 +443,100 @@ class ConfigLoaderTest extends TestCase
         } finally {
             putenv('BASE_URL');
             @unlink($configFile);
+        }
+    }
+
+    /**
+     * @covers \App\Config\ConfigLoader::load
+     *
+     * Requirements: 10.1, 10.2
+     */
+    public function testDotenvFileTakesPrecedenceOverConfigFile(): void
+    {
+        $configFile = $this->writeTempConfig([
+            'port'             => 8080,
+            'wkhtmltopdfPath'  => '/file/wkhtmltopdf',
+            'apiKeys'          => ['file-key'],
+            'storageDir'       => '/tmp/file-storage',
+            'baseUrl'          => 'https://file.example.com',
+        ]);
+        $envFile = $this->writeTempEnv([
+            'PORT'             => '9090',
+            'WKHTMLTOPDF_PATH' => '/env/wkhtmltopdf',
+            'API_KEYS'         => 'env-key-one,env-key-two',
+            'STORAGE_DIR'      => '/tmp/env-storage',
+            'BASE_URL'         => 'https://env.example.com',
+        ]);
+
+        try {
+            putenv('PORT');
+            putenv('WKHTMLTOPDF_PATH');
+            putenv('API_KEYS');
+            putenv('STORAGE_DIR');
+            putenv('BASE_URL');
+            putenv('TTL_SECONDS');
+            putenv('CLEANUP_INTERVAL_SECONDS');
+            putenv('MAX_CONCURRENT_RENDERERS');
+            putenv('RENDER_TIMEOUT_SECONDS');
+            putenv('MAX_STORAGE_MB');
+            putenv('RATE_LIMIT_RPM');
+
+            $config = ConfigLoader::load($configFile, $envFile);
+
+            self::assertSame(9090, $config->port);
+            self::assertSame('/env/wkhtmltopdf', $config->wkhtmltopdfPath);
+            self::assertSame(['env-key-one', 'env-key-two'], $config->apiKeys);
+            self::assertSame('/tmp/env-storage', $config->storageDir);
+            self::assertSame('https://env.example.com', $config->baseUrl);
+        } finally {
+            @unlink($configFile);
+            @unlink($envFile);
+        }
+    }
+
+    /**
+     * @covers \App\Config\ConfigLoader::load
+     *
+     * Requirements: 10.2
+     */
+    public function testProcessEnvTakesPrecedenceOverDotenvFile(): void
+    {
+        $configFile = $this->writeTempConfig([
+            'port'             => 8080,
+            'wkhtmltopdfPath'  => '/file/wkhtmltopdf',
+            'apiKeys'          => ['file-key'],
+            'storageDir'       => '/tmp/file-storage',
+            'baseUrl'          => 'https://file.example.com',
+        ]);
+        $envFile = $this->writeTempEnv([
+            'PORT'             => '9090',
+            'WKHTMLTOPDF_PATH' => '/env/wkhtmltopdf',
+            'API_KEYS'         => 'env-key',
+            'STORAGE_DIR'      => '/tmp/env-storage',
+            'BASE_URL'         => 'https://env.example.com',
+        ]);
+
+        try {
+            putenv('PORT=7070');
+            putenv('WKHTMLTOPDF_PATH');
+            putenv('API_KEYS');
+            putenv('STORAGE_DIR');
+            putenv('BASE_URL');
+            putenv('TTL_SECONDS');
+            putenv('CLEANUP_INTERVAL_SECONDS');
+            putenv('MAX_CONCURRENT_RENDERERS');
+            putenv('RENDER_TIMEOUT_SECONDS');
+            putenv('MAX_STORAGE_MB');
+            putenv('RATE_LIMIT_RPM');
+
+            $config = ConfigLoader::load($configFile, $envFile);
+
+            self::assertSame(7070, $config->port);
+            self::assertSame('/env/wkhtmltopdf', $config->wkhtmltopdfPath);
+        } finally {
+            putenv('PORT');
+            @unlink($configFile);
+            @unlink($envFile);
         }
     }
 
