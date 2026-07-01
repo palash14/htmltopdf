@@ -3,4 +3,5 @@ vendor/
 .env
 composer.lock
 .phpunit.cache/
+public/storage/pdfs
 
