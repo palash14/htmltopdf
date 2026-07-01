@@ -79,6 +79,10 @@ class RendererService
             $status = proc_get_status($process);
 
             if (!$status['running']) {
+                if (($status['exitcode'] ?? -1) !== -1) {
+                    $exitCode = (int) $status['exitcode'];
+                }
+
                 // Process has finished — drain remaining stderr output.
                 // On Unix with non-blocking pipes, fread will return '' when empty;
                 // on Windows, the process is done so fread will get EOF quickly.
@@ -125,7 +129,10 @@ class RendererService
 
         fclose($pipes[1]);
         fclose($pipes[2]);
-        $exitCode = proc_close($process);
+        $closeExitCode = proc_close($process);
+        if ($exitCode === -1 && $closeExitCode !== -1) {
+            $exitCode = $closeExitCode;
+        }
 
         // Cap stderr at 2000 characters.
         $stderrCapped = substr($stderr, 0, 2000);
