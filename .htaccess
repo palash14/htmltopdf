@@ -1,0 +1,14 @@
+# Route all requests through the Slim front controller.
+# This file lives in the project root; Apache's DocumentRoot should point
+# to the public/ subdirectory, but if it is set to the project root this
+# rule ensures requests are forwarded correctly.
+
+RewriteEngine On
+
+# If the requested path maps to a real file or directory under public/,
+# serve it directly.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Otherwise rewrite to public/index.php.
+RewriteRule ^(.*)$ public/index.php [QSA,L]

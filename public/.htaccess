@@ -1,0 +1,11 @@
+# Route all requests through the Slim front controller (public/ is the
+# Apache DocumentRoot).
+
+RewriteEngine On
+
+# Allow direct access to real files (e.g., static assets).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite everything else to index.php, preserving the query string.
+RewriteRule ^ index.php [QSA,L]
