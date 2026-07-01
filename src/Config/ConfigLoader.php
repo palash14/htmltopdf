@@ -163,7 +163,7 @@ class ConfigLoader
      */
     private static function abort(string $message): never
     {
-        fwrite(STDERR, '[CONFIG ERROR] ' . $message . PHP_EOL);
+        fwrite(\STDERR, '[CONFIG ERROR] ' . $message . PHP_EOL);
         exit(1);
     }
 
