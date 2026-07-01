@@ -19,8 +19,10 @@ use App\Service\StorageService;
 use DI\ContainerBuilder;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Logger;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Factory\AppFactory;
+use Slim\Psr7\Factory\ResponseFactory;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -67,6 +69,11 @@ $builder->addDefinitions([
     // --- Controllers (deferred / autowired) -----------------------------------
     ConvertController::class => \DI\autowire(ConvertController::class),
     FileController::class    => \DI\autowire(FileController::class),
+
+    // --- PSR-7 ResponseFactory (required by JsonErrorHandler) ----------------
+    ResponseFactoryInterface::class => static function (): ResponseFactoryInterface {
+        return new ResponseFactory();
+    },
 
     // --- Error handler -------------------------------------------------------
     JsonErrorHandler::class => \DI\autowire(JsonErrorHandler::class),
