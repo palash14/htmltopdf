@@ -265,6 +265,25 @@ class AuthMiddlewareTest extends TestCase
         self::assertInstanceOf(ResponseInterface::class, $response);
     }
 
+    public function testXApiKeyHeaderCallsHandler(): void
+    {
+        $middleware = $this->makeMiddleware(['x-key']);
+        $request    = $this->makeRequest()->withHeader('X-API-Key', 'x-key');
+
+        $response = $middleware->process($request, $this->makeHandler(expectCall: true));
+
+        self::assertInstanceOf(ResponseInterface::class, $response);
+    }
+
+    public function testInvalidXApiKeyThrows403(): void
+    {
+        $this->expectException(AuthException::class);
+        $this->makeMiddleware(['x-key'])->process(
+            $this->makeRequest()->withHeader('X-API-Key', 'wrong'),
+            $this->makeHandler()
+        );
+    }
+
     public function testFileDownloadDoesNotRequireAuthorizationHeader(): void
     {
         $middleware = $this->makeMiddleware(['secret-key']);

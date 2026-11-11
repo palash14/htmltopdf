@@ -46,6 +46,13 @@ class AuthMiddleware implements MiddlewareInterface
                 ?? ''
             );
         }
+        if ($headerLine === '' && function_exists('getallheaders')) {
+            $headerLine = (string) (array_change_key_case(getallheaders() ?: [])['authorization'] ?? '');
+        }
+        // Some hosts strip Authorization entirely; X-API-Key survives as a fallback.
+        if ($headerLine === '' && $request->getHeaderLine('X-API-Key') !== '') {
+            $headerLine = 'Bearer ' . $request->getHeaderLine('X-API-Key');
+        }
 
         if ($headerLine === '') {
             throw new AuthException(401, 'Authorization header required');

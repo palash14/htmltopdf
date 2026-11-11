@@ -3,6 +3,9 @@
 
 RewriteEngine On
 
+# Pass Authorization to PHP-FPM/CGI (Apache 2.4.13+).
+CGIPassAuth On
+
 # Preserve Authorization for PHP/FastCGI environments that do not pass it
 # through automatically.
 SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
