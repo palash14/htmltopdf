@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Exception\StorageFullException;
+use App\Job\CleanupJob;
 use App\Model\Config;
 use App\Service\ConcurrencyGuard;
 use App\Service\InputValidator;
@@ -39,6 +40,7 @@ class ConvertController
         private readonly RendererService  $rendererService,
         private readonly ConcurrencyGuard $concurrencyGuard,
         private readonly Config           $config,
+        private readonly ?CleanupJob      $cleanupJob = null,
     ) {}
 
     /**
@@ -79,6 +81,12 @@ class ConvertController
         // ------------------------------------------------------------------
         // Step 4: Storage-full check (throws StorageFullException → 507)
         // ------------------------------------------------------------------
+        try {
+            $this->cleanupJob?->run();
+        } catch (\Throwable) {
+            // Opportunistic cleanup must not block conversion.
+        }
+
         if (
             $this->config->maxStorageMb !== null
             && $this->storageService->storageSizeBytes() >= $this->config->maxStorageMb * 1024 * 1024

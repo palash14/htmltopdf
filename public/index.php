@@ -6,6 +6,7 @@ use App\Config\ConfigLoader;
 use App\Controller\ConvertController;
 use App\Controller\FileController;
 use App\Handler\JsonErrorHandler;
+use App\Job\CleanupJob;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\RequestLogMiddleware;
@@ -60,6 +61,7 @@ $builder->addDefinitions([
     RendererService::class => \DI\autowire(RendererService::class),
     ConcurrencyGuard::class => \DI\autowire(ConcurrencyGuard::class),
     RateLimiter::class     => \DI\autowire(RateLimiter::class),
+    CleanupJob::class      => \DI\autowire(CleanupJob::class),
 
     // --- Middleware (deferred / autowired) ------------------------------------
     AuthMiddleware::class        => \DI\autowire(AuthMiddleware::class),

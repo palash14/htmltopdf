@@ -198,7 +198,7 @@ Then set `WKHTMLTOPDF_PATH` to the full path of the binary, e.g. `/home/username
 
 ---
 
-## Setting Up the Cleanup Cron Job
+## Cleanup of Expired PDFs
 
 The cleanup script deletes expired PDF files. Set it up in **cPanel → Cron Jobs**:
 
@@ -207,7 +207,10 @@ The cleanup script deletes expired PDF files. Set it up in **cPanel → Cron Job
 /usr/bin/php /path/to/project/bin/cleanup.php
 ```
 
-**Schedule:** Every minute (`* * * * *`) is recommended. You can also use every 5 minutes (`*/5 * * * *`) for lower load.
+Expired PDF files are also deleted automatically before each new conversion request.
+The cron command is optional, but useful when no new conversions are running.
+
+**Schedule:** Every 5 minutes (`*/5 * * * *`) is usually enough. Use every minute (`* * * * *`) if you want tighter expiry.
 
 The script exits with code `0` on success or `1` if any I/O errors occurred (useful for cron alerting).
 

@@ -10,6 +10,7 @@ use App\Exception\RendererException;
 use App\Exception\RendererTimeoutException;
 use App\Exception\StorageFullException;
 use App\Exception\ValidationException;
+use App\Job\CleanupJob;
 use App\Model\Config;
 use App\Model\StoredFile;
 use App\Service\ConcurrencyGuard;
@@ -91,6 +92,7 @@ class ConvertControllerTest extends TestCase
         RendererService  $rendererService,
         ConcurrencyGuard $concurrencyGuard,
         ?Config          $config = null,
+        ?CleanupJob      $cleanupJob = null,
     ): ConvertController {
         return new ConvertController(
             inputValidator:   $inputValidator,
@@ -99,6 +101,7 @@ class ConvertControllerTest extends TestCase
             rendererService:  $rendererService,
             concurrencyGuard: $concurrencyGuard,
             config:           $config ?? $this->makeConfig(),
+            cleanupJob:       $cleanupJob,
         );
     }
 
@@ -206,6 +209,47 @@ class ConvertControllerTest extends TestCase
             $decoded['expires_at'],
             'expires_at must be a valid ISO 8601 UTC datetime'
         );
+    }
+
+    public function testCleanupRunsBeforeConversionWhenConfigured(): void
+    {
+        $storedFile = $this->makeStoredFile();
+
+        $inputValidator = $this->createMock(InputValidator::class);
+        $inputValidator->method('validateConvertRequest')->willReturn('https://public.example.com/page');
+
+        $ssrfGuard = $this->createMock(SsrfGuard::class);
+        $ssrfGuard->expects($this->once())->method('check');
+
+        $storageService = $this->createMock(StorageService::class);
+        $storageService->method('storageSizeBytes')->willReturn(0);
+        $storageService->expects($this->once())->method('save')->willReturn($storedFile);
+
+        $rendererService = $this->createMock(RendererService::class);
+        $rendererService->expects($this->once())->method('render');
+
+        $concurrencyGuard = $this->createMock(ConcurrencyGuard::class);
+        $concurrencyGuard->expects($this->once())->method('acquire');
+        $concurrencyGuard->expects($this->once())->method('release');
+
+        $cleanupJob = $this->createMock(CleanupJob::class);
+        $cleanupJob->expects($this->once())->method('run');
+
+        $controller = $this->makeController(
+            $inputValidator,
+            $ssrfGuard,
+            $storageService,
+            $rendererService,
+            $concurrencyGuard,
+            cleanupJob: $cleanupJob
+        );
+
+        $response = $controller->handle(
+            $this->makeRequest(['url' => 'https://public.example.com/page']),
+            (new ResponseFactory())->createResponse()
+        );
+
+        self::assertSame(200, $response->getStatusCode());
     }
 
     // -----------------------------------------------------------------------
